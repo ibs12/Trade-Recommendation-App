@@ -1,17 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Trading Bot</title>
-</head>
-<body>
-    <h1>Welcome to the Stock Trading Bot!</h1>
-    <p>Enter a stock symbol to get a recommendation:</p>
-    <!-- Form to enter stock symbol -->
-    <form action="/recommendation" method="post">
-        <input type="text" id="stock_symbol" name="stock_symbol" required>
-        <button type="submit">Get Recommendation</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Action Recommender 
+    </title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include date-fns adapter for Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+
+
+
+
+  const form = document.querySelector(".stock-form");
+  const resultContainer = document.getElementById('result-container');
+  const resultButton = document.createElement('button');
+  resultButton.type = 'button';  
+  resultButton.className = 'result-button';  
+  resultContainer.appendChild(resultButton); 
+  resultButton.textContent = "Buy, Sell or Hold?";  
+  resultButton.className = 'result-button ' + 'question-button';
+  form.addEventListener("submit", function (event) {
+      event.preventDefault();  
+      const symbol = document.getElementById('stock_symbol').value;
+
+      manageData(symbol)  
+      .then(() => {
+          return fetchData(symbol);  
+      })
+      .then(() => {
+          return fetch('/recommendation', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: `stock_symbol=${encodeURIComponent(symbol)}`
+          });
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Data received:", data);
+        console.log("Data Recommendation:", data.recommendation);
+
+          if (data.recommendation) {
+            
+              resultButton.textContent = data.recommendation;
+              resultButton.className = 'result-button ' + data.recommendation.toLowerCase() + '-button';
+          } else {
+              resultButton.textContent = 'Error getting recommendation';
+              resultButton.className = 'result-button error-button';
+          }
+          resultButton.style.display = 'block';  // Show the button
+      })
+      .catch(error => {
+          console.error("Failed to get recommendation:", error);
+          resultButton.textContent = 'Error getting recommendation';
+          resultButton.className = 'result-button error-button';
+          resultButton.style.display = 'block'; 
+      });
+  });
+
+  function manageData(symbol) {
+      return fetch('/manage_stock_data', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `stock_symbol=${encodeURIComponent(symbol)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+          console.log("Managed data:", data);
+          return data;
+      });
+  }
+
+  function fetchData(symbol) {
+      return fetch(`/get_stock_data?symbol=${encodeURIComponent(symbol)}`, {
+          method: 'GET'
+      })
+      .then(response => response.json())
+      .then(data => {
+          updateGraph(data, symbol); // Pass the symbol to updateGraph
+          console.log("Fetched data:", data);
+          return data;
+      });
+  }
+
+
+        
+
+        const updateGraph = (data, symbol) => {
+          const ctx = document.getElementById("stockChart").getContext("2d");
+          if (window.chart) {
+            window.chart.destroy(); // Clear the previous chart instance
+          }
+          window.chart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: data.map((item) => item.timestamp),
+              datasets: [
+                {
+                  label: `${symbol.toUpperCase()} Stock Price`, // Use the symbol in the label
+                  data: data.map((item) => item.close),
+                  borderColor: "rgb(75, 192, 192)",
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              scales: {
+                x: {
+                  type: "time",
+                  time: {
+                    unit: "day",
+                    tooltipFormat: "MM/dd/yyyy",
+                    parser: "yyyy-MM-dd",
+                  },
+                  title: {
+                    display: true,
+                    text: "Date",
+                  },
+                },
+                y: {
+                  beginAtZero: false,
+                  title: {
+                    display: true,
+                    text: "Price ($)",
+                  },
+                },
+              },
+            },
+          });
+        };
+
+        
+
+      });
+    </script>
+  </head>
+  <body class="body">
+    <h1 class="header">Welcome to the Stock Trading Bot!</h1>
+    <p class="description">Enter a stock symbol to get a recommendation:</p>
+    <form action="/get_stock_data" method="post" class="stock-form">
+      <input
+        type="text"
+        id="stock_symbol"
+        name="stock_symbol"
+        autocomplete="off"
+        required
+      />
+      <button type="submit" class="submit-button">Get Recommendation</button>
     </form>
-</body>
+
+    <!--Add results here-->
+    <div id="result-container" style="margin-top: 20px;"></div>
+
+    <div style="width: 100%; max-width: 1200px; height: 600px; margin: auto">
+      <canvas id="stockChart"></canvas>
+    </div>
+  </body>
 </html>
