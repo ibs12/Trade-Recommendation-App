@@ -56,14 +56,14 @@
               resultButton.textContent = data.recommendation;
               resultButton.className = 'result-button ' + data.recommendation.toLowerCase() + '-button';
           } else {
-              resultButton.textContent = 'Error getting recommendation';
+              resultButton.textContent = 'Input a valid stock symbol';
               resultButton.className = 'result-button error-button';
           }
           resultButton.style.display = 'block';  // Show the button
       })
       .catch(error => {
           console.error("Failed to get recommendation:", error);
-          resultButton.textContent = 'Error getting recommendation';
+          resultButton.textContent = 'Imagine getting the stock symbol wrong';// 'Input a valid stock symbol'
           resultButton.className = 'result-button error-button';
           resultButton.style.display = 'block'; 
       });
@@ -149,7 +149,7 @@
     </script>
   </head>
   <body class="body">
-    <h1 class="header">Welcome to the Stock Trading Bot!</h1>
+    <h1 class="header">Welcome to the Stock Action Recommender!</h1>
     <p class="description">Enter a stock symbol to get a recommendation:</p>
     <form action="/get_stock_data" method="post" class="stock-form">
       <input
